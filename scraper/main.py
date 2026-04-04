@@ -1,3 +1,7 @@
+from fetcher import fetch_page
+from parser import get_all_tags,extract_tags
+from saver import save_data
+
 def main():
     urls = input("Enter URLs separated by commas: ").split(",")
     urls = [url.strip() for url in urls]
