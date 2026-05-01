@@ -4,8 +4,8 @@ This repository contains two distinct Python-based web scrapers, each optimized 
 
 ##  Project Structure
 
-- **[Static Scraper](./static_scraper/):** A high-performance, lightweight scraper using `Requests` and `BeautifulSoup`. Ideal for blogs, news sites, and static documentation.
-- **[Dynamic Scraper](./dynamic_scraper/):** (In Progress) A robust scraper using `Selenium` to handle JavaScript-heavy sites, logins, and interactive elements.
+- **[Static Scraper](./web_scraper_suite/static_scraper/):** A high-performance, lightweight scraper using `Requests` and `BeautifulSoup`. Ideal for blogs, news sites, and static documentation.
+- **[Dynamic Scraper](./web_scraper_suite/dynamic_scraper/):** (In Progress) A robust scraper using `Selenium` to handle JavaScript-heavy sites, logins, and interactive elements.
 
 ##  Key Features (Suite-wide)
 * **Ethical Scraping:** Full `robots.txt` compliance and request throttling.
