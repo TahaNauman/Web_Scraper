@@ -1,76 +1,94 @@
+import argparse
+import logging
 from fetcher import fetch_page
 from parser import get_all_tags, extract_tags, find_next_page
 from saver import save_data
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s"
+)
+
+logger = logging.getLogger(__name__)
+
 def main():
-    # Setup Inputs
-    urls_input = input("Enter starting URLs separated by commas: ").split(",")
-    urls = [url.strip() for url in urls_input]
-    
-    try:
-        max_pages = int(input("Enter max pages to scrape per URL (default 1): ") or 1)
-    except ValueError:
-        max_pages = 1
+    parser = argparse.ArgumentParser(description="Static Web Scraper")
+    parser.add_argument("--urls", nargs="+", help="Starting URLs separated by spaces")
+    parser.add_argument("--tags", nargs="+", help="HTML tags to extract (e.g., h1 p img a)")
+    parser.add_argument("--max-pages", type=int, default=1, help="Max pages to scrape per URL (default 1)")
+    parser.add_argument("--output", default="output.json", help="Output filename (default: output.json)")
+    parser.add_argument("--no-csv", action="store_true", help="Disable CSV export")
+    parser.add_argument("--deduplicate", action="store_true", help="Remove duplicate entries from results")
+    parser.add_argument("--verbose", action="store_true", help="Enable debug logging")
+    args = parser.parse_args()
+
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+
+    # Fallback to interactive mode if no URLs provided
+    if args.urls:
+        urls = [url.strip() for url in args.urls]
+    else:
+        urls_input = input("Enter starting URLs separated by commas: ").split(",")
+        urls = [url.strip() for url in urls_input]
+
+    max_pages = args.max_pages
 
     combined_results = {}
 
-    # Outer Loop: Iterate through each starting URL provided
     for start_url in urls:
         current_url = start_url
         pages_count = 0
         selected_tags = []
+        visited_urls = set()
 
-        # Inner Loop: Handle Pagination 
         while current_url and pages_count < max_pages:
-            print(f"\nScraping Page {pages_count + 1}: {current_url}")
+            if current_url in visited_urls:
+                logger.warning(f"Already visited {current_url}, stopping to avoid loop.")
+                break
+            visited_urls.add(current_url)
+
+            logger.info(f"Scraping Page {pages_count + 1}: {current_url}")
 
             referer_url = None if pages_count == 0 else current_url
-            
-            # Fetch HTML (Pass referer if it's not the first page)
             html = fetch_page(current_url, referer=referer_url)
-            
+
             if not html:
                 break
-            
-            # Identify tags only on the very first page of a domain
+
             if pages_count == 0:
                 available_tags = get_all_tags(html)
-                print(f"Available Tags: {', '.join(available_tags)}")
-                tag_input = input("Select tags to extract (e.g., h1, p, img, a): ").split(",")
-                selected_tags = [t.strip() for t in tag_input]
+                logger.info(f"Available Tags: {', '.join(available_tags)}")
+                if args.tags:
+                    selected_tags = [t.strip() for t in args.tags]
+                else:
+                    tag_input = input("Select tags to extract (e.g., h1, p, img, a): ").split(",")
+                    selected_tags = [t.strip() for t in tag_input]
 
-            #Extract Data (Passing current_url as the base for relative links)
             extracted = extract_tags(html, selected_tags, current_url)
-            
-            # Merge findings into combined_results
+
             for tag, items in extracted.items():
                 if tag not in combined_results:
                     combined_results[tag] = []
                 combined_results[tag].extend(items)
-            
-            #Look for 'Next' page URL
+
             next_url = find_next_page(html, current_url)
-            
-            # Increment the count 
             pages_count += 1
-            
-            # Check if we have a next URL AND if we are still under the limit
+
             if next_url and pages_count < max_pages:
-                # Avoid infinite loops if 'Next' points to itself
-                if next_url == current_url:
+                if next_url == current_url or next_url in visited_urls:
                     current_url = None
                 else:
                     current_url = next_url
-                    print(f"Next page found. Moving to Page {pages_count + 1}...")
+                    logger.info(f"Next page found. Moving to Page {pages_count + 1}...")
             else:
-                # Stop the loop: either no next page exists, or we hit the max_pages limit
                 current_url = None
-    #Final Export
+
     if combined_results:
-        save_data(combined_results, filename="output.json", save_csv=True)
-        print("\nScraping Task Complete!")
+        save_data(combined_results, filename=args.output, save_csv=not args.no_csv, deduplicate=args.deduplicate)
+        logger.info("Scraping Task Complete!")
     else:
-        print("\nNo data was extracted. Check your URLs or robots.txt permissions.")
+        logger.warning("No data was extracted. Check your URLs or robots.txt permissions.")
 
 if __name__ == "__main__":
     main()
