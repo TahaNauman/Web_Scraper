@@ -53,17 +53,39 @@ def extract_tags(html, selected_tags, base_url):
 def find_next_page(html, current_url):
     soup = BeautifulSoup(html, "html.parser")
     
+    # First, try to find links with rel="next" (standard pagination)
+    next_link = soup.find("a", attrs={"rel": re.compile(r"next", re.I)})
+    if next_link:
+        href = next_link.get("href")
+        if href and isinstance(href, str):
+            return urljoin(current_url, href)
+    
     # Common patterns for 'Next' buttons
     next_patterns = re.compile(r'next|older|forward|>', re.I)
     
-    # Search for an <a> tag that contains our patterns in text OR class/ID
-    next_button = soup.find("a", string=next_patterns) or \
-                  soup.find("a", attrs={"class": next_patterns}) or \
-                  soup.find("a", attrs={"id": next_patterns})
+    # Search for an <a> tag whose text matches patterns
+    next_button = None
+    for a in soup.find_all("a"):
+        if a.string and next_patterns.search(str(a.string)):
+            next_button = a
+            break
+    
+    if not next_button:
+        # Search by class or id using find_all and filtering
+        for a in soup.find_all("a"):
+            cls = a.get("class")
+            id_attr = a.get("id")
+            if cls and any(next_patterns.search(c) for c in cls if isinstance(c, str)):
+                next_button = a
+                break
+            if id_attr and isinstance(id_attr, str) and next_patterns.search(id_attr):
+                next_button = a
+                break
 
-    if next_button and next_button.get("href"):
-        next_url = next_button["href"]
-        # Join relative links (e.g. /page/2) with the current URL
-        return urljoin(current_url, next_url)
+    if next_button:
+        href = next_button.get("href")
+        if href and isinstance(href, str):
+            # Join relative links (e.g. /page/2) with the current URL
+            return urljoin(current_url, href)
     
     return None
