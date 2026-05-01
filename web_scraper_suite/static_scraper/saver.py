@@ -1,11 +1,32 @@
 import json
 import csv
+import logging
 
-def save_data(data, filename="output.json", save_csv=False):
+logger = logging.getLogger(__name__)
+
+def save_data(data, filename="output.json", save_csv=False, deduplicate=False):
+    # Optional deduplication
+    if deduplicate:
+        for tag in data:
+            original = data[tag]
+            if isinstance(original, list):
+                seen = set()
+                unique = []
+                for item in original:
+                    if isinstance(item, dict):
+                        key = (item.get("label", ""), item.get("url", ""))
+                    else:
+                        key = item
+                    if key not in seen:
+                        seen.add(key)
+                        unique.append(item)
+                data[tag] = unique
+        logger.info("Deduplication applied to extracted data")
+
     # Save JSON
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
-    print(f"JSON data saved to {filename}")
+    logger.info(f"JSON data saved to {filename}")
 
     # Save CSV
     if save_csv:
@@ -28,4 +49,4 @@ def save_data(data, filename="output.json", save_csv=False):
                         # It's just a regular string (like a <p> or <h1> tag)
                         writer.writerow([tag, item, "N/A"])
                         
-        print(f"CSV data saved to {csv_filename}")
+        logger.info(f"CSV data saved to {csv_filename}")
