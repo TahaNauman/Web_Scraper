@@ -2,6 +2,7 @@ import logging
 from urllib.robotparser import RobotFileParser
 from urllib.parse import urlparse
 from playwright.sync_api import sync_playwright
+from parser import scroll_and_load
 import random
 import time
 
@@ -34,8 +35,8 @@ def _get_robots_parser(url):
         return None
     return rp
 
-def fetch_page(url, headless=True, wait_for=None, timeout=30000, user_agent="MyScraper", retries=3):
-    """Fetch a page using Playwright browser automation with retries and rotating UA."""
+def fetch_page(url, headless=True, wait_for=None, timeout=30000, user_agent="MyScraper", retries=3, scroll=False, max_scrolls=10):
+    """Fetch a page using Playwright with retries, rotating UA, and optional infinite scroll."""
     if user_agent == "MyScraper":
         user_agent = _get_user_agent()
 
@@ -73,7 +74,11 @@ def fetch_page(url, headless=True, wait_for=None, timeout=30000, user_agent="MyS
                     logger.info(f"Waiting for selector: {wait_for}")
                     page.wait_for_selector(wait_for, timeout=timeout)
 
-                html = page.content()
+                if scroll:
+                    logger.info(f"Infinite scroll enabled, scrolling up to {max_scrolls} times...")
+                    html = scroll_and_load(page, max_scrolls=max_scrolls)
+                else:
+                    html = page.content()
                 browser.close()
                 return html
 

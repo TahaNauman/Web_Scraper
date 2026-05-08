@@ -1,7 +1,7 @@
 import argparse
 import logging
 from fetcher import fetch_page
-from parser import get_all_tags, extract_tags, find_next_page, scroll_and_load
+from parser import get_all_tags, extract_tags, find_next_page
 from saver import save_data
 
 logging.basicConfig(
@@ -55,7 +55,7 @@ def main():
 
             logger.info(f"Processing Page {pages_count + 1}: {current_url}")
 
-            html = fetch_page(current_url, headless=headless, wait_for=args.wait_for, timeout=args.timeout)
+            html = fetch_page(current_url, headless=headless, wait_for=args.wait_for, timeout=args.timeout, scroll=args.scroll, max_scrolls=args.max_scrolls)
 
             if not html:
                 logger.warning(f"Failed to fetch: {current_url}")
@@ -69,17 +69,6 @@ def main():
                 else:
                     tag_input = input("Enter comma-separated tags to extract: ").split(",")
                     selected_tags = [t.strip() for t in tag_input]
-
-            if args.scroll and pages_count == 0:
-                logger.info("Infinite scroll mode enabled, scrolling...")
-                from playwright.sync_api import sync_playwright
-                with sync_playwright() as p:
-                    browser = p.chromium.launch(headless=headless)
-                    context = browser.new_context(viewport={"width": 1920, "height": 1080})
-                    page = context.new_page()
-                    page.goto(current_url, wait_until="networkidle", timeout=args.timeout)
-                    html = scroll_and_load(page, max_scrolls=args.max_scrolls)
-                    browser.close()
 
             extracted = extract_tags(html, selected_tags, base_url=current_url)
 
