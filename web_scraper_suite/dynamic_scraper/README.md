@@ -27,9 +27,9 @@ A modular, high-speed scraper designed to extract text, links, and image sources
    python main.py --urls https://example.com --tags h1 p a --no-headless
    ```
    Or run interactively with
-  ```bash
-  python main.py
-  ```
+   ```bash
+    python main.py
+   ```
 
 ## CLI Options
 
