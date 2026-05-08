@@ -2,6 +2,7 @@ import logging
 from urllib.robotparser import RobotFileParser
 from urllib.parse import urlparse
 import requests
+import socket
 import random
 import time
 
@@ -22,7 +23,7 @@ def _get_user_agent():
             pass
     return "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 
-def _get_robots_parser(url):
+def _get_robots_parser(url, timeout=10):
     
     parsed = urlparse(url)
     base_url = f"{parsed.scheme}://{parsed.netloc}"
@@ -30,7 +31,10 @@ def _get_robots_parser(url):
     rp = RobotFileParser()
     rp.set_url(robots_url)
     try:
+        old_timeout = socket.getdefaulttimeout()
+        socket.setdefaulttimeout(timeout)
         rp.read()
+        socket.setdefaulttimeout(old_timeout)
     except Exception as e:
         logger.warning(f"Could not read robots.txt at {robots_url}: {e}")
         return None

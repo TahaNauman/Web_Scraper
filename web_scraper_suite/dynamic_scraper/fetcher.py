@@ -3,6 +3,7 @@ from urllib.robotparser import RobotFileParser
 from urllib.parse import urlparse
 from playwright.sync_api import sync_playwright
 from parser import scroll_and_load
+import socket
 import random
 import time
 
@@ -22,14 +23,17 @@ def _get_user_agent():
             pass
     return "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 
-def _get_robots_parser(url):
+def _get_robots_parser(url, timeout=10):
     parsed = urlparse(url)
     base_url = f"{parsed.scheme}://{parsed.netloc}"
     robots_url = f"{base_url}/robots.txt"
     rp = RobotFileParser()
     rp.set_url(robots_url)
     try:
+        old_timeout = socket.getdefaulttimeout()
+        socket.setdefaulttimeout(timeout)
         rp.read()
+        socket.setdefaulttimeout(old_timeout)
     except Exception as e:
         logger.warning(f"Could not read robots.txt at {robots_url}: {e}")
         return None
@@ -57,9 +61,10 @@ def fetch_page(url, headless=True, wait_for=None, timeout=30000, user_agent="MyS
 
                 logger.info(f"Navigating to: {url} (attempt {attempt+1}/{retries})")
                 time.sleep(random.uniform(1, 3))
-                response = page.goto(url, wait_until="networkidle", timeout=timeout)
+                wait_until = "domcontentloaded" if scroll else "networkidle"
+                response = page.goto(url, wait_until=wait_until, timeout=timeout)
 
-                if not response or response.status >= 400:
+                if response and response.status >= 400:
                     status = response.status if response else "unknown"
                     logger.error(f"Failed to fetch page. Status code: {status}")
                     browser.close()
