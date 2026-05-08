@@ -57,12 +57,24 @@ def find_next_page(html, current_url):
     
     next_patterns = re.compile(r'next|older|forward|>', re.I)
     
+    # Check by text content (use get_text to handle mixed child nodes)
     for a in soup.find_all("a"):
-        if a.string and next_patterns.search(str(a.string)):
+        text = a.get_text(strip=True)
+        if text and next_patterns.search(text):
             href = a.get("href")
             if href and isinstance(href, str):
                 return urljoin(current_url, href)
     
+    # Check by class or id
+    # Check <li class="next"> containing <a> (common Bootstrap pagination pattern)
+    next_li = soup.find("li", class_=next_patterns)
+    if next_li:
+        a = next_li.find("a")
+        if a:
+            href = a.get("href")
+            if href and isinstance(href, str):
+                return urljoin(current_url, href)
+
     for a in soup.find_all("a"):
         cls = a.get("class")
         id_attr = a.get("id")
