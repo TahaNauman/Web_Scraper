@@ -136,20 +136,3 @@ python main.py --urls https://quotes.toscrape.com/js/ --tags div --scroll --max-
 **Pass Criteria:** All flags respected; visible browser scrolls 3 times; debug logs shown; data saved
 
 ---
-
-## Test Case Summary
-
-| # | Test | Key Flag(s) | Expected Outcome |
-|---|------|-------------|------------------|
-| 1 | Headless (default) | _(none)_ | No visible browser |
-| 2 | Headed mode | `--no-headless` | Visible browser window |
-| 3 | JS rendering | `--urls` on JS site | Extracted JS content |
-| 4 | Wait for selector | `--wait-for` | Waits before extracting |
-| 5 | Custom timeout | `--timeout 5000` | Loads within 5s |
-| 6 | Timeout exceeded | `--timeout 1` | Fails fast with timeout |
-| 7 | Infinite scroll | `--scroll` | Scrolls and extracts |
-| 8 | Max scrolls limit | `--scroll --max-scrolls 2` | Only 2 scrolls |
-| 9 | Pagination | `--max-pages 3` | 3 pages scraped |
-| 10 | Retries | invalid URL | 3 retry attempts |
-| 11 | robots.txt timeout | unreachable IP | Fails fast (~10s) |
-| 12 | All flags | _(all)_ | Full pipeline works |
